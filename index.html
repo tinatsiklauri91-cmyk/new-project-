@@ -36,7 +36,7 @@
     const { initializeApp } = firebase.app;
     const { getAuth, signInAnonymously, onAuthStateChanged } = firebase.auth;
     const { getFirestore, doc, setDoc, updateDoc, onSnapshot } = firebase.firestore;
-    const { Home, Layout, Leaf, Sun, Save, Plus, Trash2, Maximize2, Layers, Info, Clock, Droplets, PenTool } = LucideReact;
+    const { Home, Layout, Leaf, Sun, Save, Plus, Trash2, Maximize2, Layers, Info, Clock, Droplets, PenTool, Bath, Car, UtensilsCrossed, Baby, Dumbbell, BookOpen, Shirt } = LucideReact;
 
     const firebaseConfig = JSON.parse(__firebase_config);
     const appId = typeof __app_id !== 'undefined' ? __app_id : 'house-design-2026';
@@ -51,11 +51,58 @@
     }
 
     const ROOM_TYPES = [
-      { id: 'living', name: 'Living Room', color: 'bg-orange-100', icon: React.createElement(Home, { size: 18 }), wellness: 85 },
-      { id: 'bedroom', name: 'Bedroom', color: 'bg-indigo-100', icon: React.createElement(Clock, { size: 18 }), wellness: 95 },
-      { id: 'office', name: 'Smart Office', color: 'bg-emerald-100', icon: React.createElement(PenTool, { size: 18 }), wellness: 70 },
-      { id: 'kitchen', name: 'Eco-Kitchen', color: 'bg-amber-100', icon: React.createElement(Droplets, { size: 18 }), wellness: 60 },
-      { id: 'garden', name: 'Biophilic Zone', color: 'bg-green-100', icon: React.createElement(Leaf, { size: 18 }), wellness: 100 },
+      { id: 'living', name: 'Living Room', color: 'bg-orange-100', colorId: 'orange', icon: React.createElement(Home, { size: 18 }), wellness: 85 },
+      { id: 'bedroom', name: 'Bedroom', color: 'bg-indigo-100', colorId: 'indigo', icon: React.createElement(Clock, { size: 18 }), wellness: 95 },
+      { id: 'office', name: 'Smart Office', color: 'bg-emerald-100', colorId: 'emerald', icon: React.createElement(PenTool, { size: 18 }), wellness: 70 },
+      { id: 'kitchen', name: 'Eco-Kitchen', color: 'bg-amber-100', colorId: 'amber', icon: React.createElement(Droplets, { size: 18 }), wellness: 60 },
+      { id: 'garden', name: 'Biophilic Zone', color: 'bg-green-100', colorId: 'green', icon: React.createElement(Leaf, { size: 18 }), wellness: 100 },
+      { id: 'bathroom', name: 'Bathroom', color: 'bg-sky-100', colorId: 'sky', icon: React.createElement(Bath || Droplets, { size: 18 }), wellness: 75 },
+      { id: 'dining', name: 'Dining Room', color: 'bg-rose-100', colorId: 'rose', icon: React.createElement(UtensilsCrossed || Layout, { size: 18 }), wellness: 80 },
+      { id: 'nursery', name: 'Nursery', color: 'bg-pink-100', colorId: 'pink', icon: React.createElement(Baby || Leaf, { size: 18 }), wellness: 98 },
+      { id: 'laundry', name: 'Laundry', color: 'bg-violet-100', colorId: 'violet', icon: React.createElement(Shirt || Droplets, { size: 18 }), wellness: 55 },
+      { id: 'garage', name: 'Garage', color: 'bg-stone-100', colorId: 'stone', icon: React.createElement(Car || Layout, { size: 18 }), wellness: 40 },
+      { id: 'gym', name: 'Home Gym', color: 'bg-red-100', colorId: 'red', icon: React.createElement(Dumbbell || Sun, { size: 18 }), wellness: 90 },
+      { id: 'study', name: 'Study', color: 'bg-teal-100', colorId: 'teal', icon: React.createElement(BookOpen || PenTool, { size: 18 }), wellness: 72 },
+    ];
+
+    const ROOM_COLORS = [
+      { id: 'orange', name: 'Warm Orange', bg: 'bg-orange-100', border: 'border-orange-300' },
+      { id: 'indigo', name: 'Indigo', bg: 'bg-indigo-100', border: 'border-indigo-300' },
+      { id: 'emerald', name: 'Emerald', bg: 'bg-emerald-100', border: 'border-emerald-300' },
+      { id: 'amber', name: 'Amber', bg: 'bg-amber-100', border: 'border-amber-300' },
+      { id: 'green', name: 'Green', bg: 'bg-green-100', border: 'border-green-300' },
+      { id: 'sky', name: 'Sky Blue', bg: 'bg-sky-100', border: 'border-sky-300' },
+      { id: 'rose', name: 'Rose', bg: 'bg-rose-100', border: 'border-rose-300' },
+      { id: 'pink', name: 'Pink', bg: 'bg-pink-100', border: 'border-pink-300' },
+      { id: 'violet', name: 'Violet', bg: 'bg-violet-100', border: 'border-violet-300' },
+      { id: 'teal', name: 'Teal', bg: 'bg-teal-100', border: 'border-teal-300' },
+      { id: 'red', name: 'Soft Red', bg: 'bg-red-100', border: 'border-red-300' },
+      { id: 'stone', name: 'Stone', bg: 'bg-stone-100', border: 'border-stone-300' },
+      { id: 'lime', name: 'Lime', bg: 'bg-lime-100', border: 'border-lime-300' },
+      { id: 'cyan', name: 'Cyan', bg: 'bg-cyan-100', border: 'border-cyan-300' },
+      { id: 'fuchsia', name: 'Fuchsia', bg: 'bg-fuchsia-100', border: 'border-fuchsia-300' },
+    ];
+
+    const CURTAIN_STYLES = [
+      { id: 'none', name: 'None' },
+      { id: 'sheer', name: 'Sheer (Light)' },
+      { id: 'blackout', name: 'Blackout' },
+      { id: 'roman', name: 'Roman' },
+      { id: 'roller', name: 'Roller' },
+      { id: 'thermal', name: 'Thermal' },
+    ];
+
+    const CURTAIN_COLORS = [
+      { id: 'white', name: 'White', stripe: 'bg-white' },
+      { id: 'cream', name: 'Cream', stripe: 'bg-amber-50' },
+      { id: 'grey', name: 'Grey', stripe: 'bg-slate-200' },
+      { id: 'navy', name: 'Navy', stripe: 'bg-slate-800' },
+      { id: 'sage', name: 'Sage', stripe: 'bg-emerald-200' },
+      { id: 'linen', name: 'Linen', stripe: 'bg-stone-200' },
+      { id: 'dusty_rose', name: 'Dusty Rose', stripe: 'bg-rose-200' },
+      { id: 'terracotta', name: 'Terracotta', stripe: 'bg-orange-300' },
+      { id: 'blue', name: 'Light Blue', stripe: 'bg-sky-200' },
+      { id: 'charcoal', name: 'Charcoal', stripe: 'bg-zinc-700' },
     ];
 
     const MATERIALS = [
@@ -137,7 +184,10 @@
           x: 50, y: 50, w: 120, h: 100,
           wellnessScore: type.wellness,
           material: 'limewash',
-          zoning: 'Standard'
+          zoning: 'Standard',
+          roomColor: type.colorId || 'orange',
+          curtains: 'sheer',
+          curtainColor: 'white'
         };
         const updated = [...rooms, newRoom];
         setRooms(updated);
@@ -223,7 +273,7 @@
                 {statusMsg && <span className="text-xs text-emerald-600 font-medium animate-pulse bg-emerald-50 px-2 py-1 rounded">{statusMsg}</span>}
               </div>
               <div className="flex items-center space-x-3">
-                <div className="flex items-center bg-slate-100 p-1 rounded-lg">
+                <div className="flex items-center bg-slate-100 p-1 rounded-lg overflow-x-auto max-w-[480px] gap-0.5 flex-wrap">
                   {ROOM_TYPES.map(type => (
                     <button key={type.id} onClick={() => addRoom(type.id)} title={`Add ${type.name}`}
                       className="p-2 hover:bg-white hover:shadow-sm rounded-md transition text-slate-600 hover:text-indigo-600">
@@ -243,9 +293,14 @@
               {activeTab === 'planner' && (
                 <div className="relative bg-white shadow-xl mx-auto rounded-sm border border-slate-300"
                   style={{ width: '800px', height: '600px', backgroundImage: 'radial-gradient(#e5e7eb 1px, transparent 1px)', backgroundSize: '20px 20px' }}>
-                  {rooms.map(room => (
+                  {rooms.map(room => {
+                    const colorOpt = ROOM_COLORS.find(c => c.id === (room.roomColor || ROOM_TYPES.find(t => t.id === room.type)?.colorId));
+                    const bgClass = colorOpt?.bg || ROOM_TYPES.find(t => t.id === room.type)?.color || 'bg-gray-100';
+                    const curtainOpt = CURTAIN_COLORS.find(c => c.id === (room.curtainColor || 'white'));
+                    const hasCurtains = room.curtains && room.curtains !== 'none';
+                    return (
                     <div key={room.id} onClick={(e) => { e.stopPropagation(); setSelectedRoom(room); }}
-                      className={`absolute cursor-move border-2 transition-all ${selectedRoom?.id === room.id ? 'border-indigo-500 ring-2 ring-indigo-200 z-20 shadow-lg' : 'border-slate-400 z-10'} ${ROOM_TYPES.find(t => t.id === room.type)?.color || 'bg-gray-100'} rounded-md p-3 flex flex-col justify-between`}
+                      className={`absolute cursor-move border-2 transition-all ${selectedRoom?.id === room.id ? 'border-indigo-500 ring-2 ring-indigo-200 z-20 shadow-lg' : 'border-slate-400 z-10'} ${bgClass} rounded-md p-3 flex flex-col justify-between overflow-hidden`}
                       style={{ left: `${room.x}px`, top: `${room.y}px`, width: `${room.w}px`, height: `${room.h}px` }}
                       onMouseDown={(e) => {
                         const startX = e.clientX - room.x;
@@ -259,6 +314,13 @@
                         document.addEventListener('mousemove', onMouseMove);
                         document.addEventListener('mouseup', onMouseUp);
                       }}>
+                      {hasCurtains && (
+                        <div className="absolute top-0 left-0 right-0 h-1.5 flex gap-0.5 px-1 pt-0.5" title={`${room.curtains} curtains`}>
+                          <div className={`flex-1 rounded-sm opacity-90 ${curtainOpt?.stripe || 'bg-white'}`}></div>
+                          <div className={`flex-1 rounded-sm opacity-90 ${curtainOpt?.stripe || 'bg-white'}`}></div>
+                          <div className={`flex-1 rounded-sm opacity-90 ${curtainOpt?.stripe || 'bg-white'}`}></div>
+                        </div>
+                      )}
                       <div className="flex justify-between items-start">
                         <span className="text-[10px] font-bold uppercase opacity-60 tracking-wider">{room.name}</span>
                         {ROOM_TYPES.find(t => t.id === room.type)?.icon}
@@ -267,7 +329,7 @@
                         <span>{Math.round(room.w/10)}' x {Math.round(room.h/10)}'</span>
                       </div>
                     </div>
-                  ))}
+                  ); })}
                   {rooms.length === 0 && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 italic">
                       <Layout size={48} className="mb-4 opacity-20" />
@@ -359,6 +421,41 @@
                       }}
                       className="w-full mt-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" />
                   </div>
+                  <div>
+                    <label className="text-xs font-bold text-slate-500 uppercase">Room Colour</label>
+                    <div className="flex flex-wrap gap-1.5 mt-1">
+                      {ROOM_COLORS.map(c => (
+                        <button key={c.id} onClick={() => {
+                          const updated = rooms.map(r => r.id === selectedRoom.id ? { ...r, roomColor: c.id } : r);
+                          setRooms(updated);
+                        }} className={`w-7 h-7 rounded-full border-2 transition ${(selectedRoom.roomColor || ROOM_TYPES.find(t => t.id === selectedRoom.type)?.colorId) === c.id ? 'border-slate-800 ring-1 ring-slate-400' : 'border-slate-200 hover:border-slate-400'} ${c.bg}`} title={c.name} />
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-slate-500 uppercase">Curtains</label>
+                    <select value={selectedRoom.curtains || 'sheer'}
+                      onChange={(e) => {
+                        const updated = rooms.map(r => r.id === selectedRoom.id ? { ...r, curtains: e.target.value } : r);
+                        setRooms(updated);
+                      }}
+                      className="w-full mt-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                      {CURTAIN_STYLES.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    </select>
+                  </div>
+                  {selectedRoom.curtains && selectedRoom.curtains !== 'none' && (
+                  <div>
+                    <label className="text-xs font-bold text-slate-500 uppercase">Curtain Colour</label>
+                    <select value={selectedRoom.curtainColor || 'white'}
+                      onChange={(e) => {
+                        const updated = rooms.map(r => r.id === selectedRoom.id ? { ...r, curtainColor: e.target.value } : r);
+                        setRooms(updated);
+                      }}
+                      className="w-full mt-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none">
+                      {CURTAIN_COLORS.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                  </div>
+                  )}
                   <div>
                     <label className="text-xs font-bold text-slate-500 uppercase">Neuro-Material</label>
                     <select value={selectedRoom.material}
