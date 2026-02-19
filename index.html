@@ -38,7 +38,7 @@
     const { initializeApp } = firebase.app;
     const { getAuth, signInAnonymously, onAuthStateChanged } = firebase.auth;
     const { getFirestore, doc, setDoc, updateDoc, onSnapshot } = firebase.firestore;
-    const { Home, Layout, Leaf, Sun, Save, Plus, Trash2, Maximize2, Layers, Info, Clock, Droplets, PenTool, Bath, Car, UtensilsCrossed, Baby, Dumbbell, BookOpen, Shirt } = LucideReact;
+    const { Home, Layout, Leaf, Sun, Save, Plus, Trash2, Maximize2, Layers, Info, Clock, Droplets, PenTool, Bath, Car, UtensilsCrossed, Baby, Dumbbell, BookOpen, Shirt, Search, X } = LucideReact;
 
     const firebaseConfig = JSON.parse(__firebase_config);
     const appId = typeof __app_id !== 'undefined' ? __app_id : 'house-design-2026';
@@ -228,6 +228,75 @@
       return null;
     }
 
+    function RoomInteriorView({ room, containerRef, onClose }) {
+      React.useEffect(() => {
+        if (!room || !containerRef?.current || !window.THREE) return;
+        const { THREE } = window;
+        const w = containerRef.current.clientWidth || 500;
+        const h = containerRef.current.clientHeight || 400;
+        const scale = 0.15;
+        const W = (room.w || 120) * scale;
+        const D = (room.h || 100) * scale;
+        const H = 9;
+        const colorId = room.roomColor || ROOM_TYPES.find(t => t.id === room.type)?.colorId || 'orange';
+        const hex = COLOR_TO_HEX[colorId] || 0xffedd5;
+        const wallHex = Math.floor(hex * 0.9);
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xf0f4f8);
+        const camera = new THREE.PerspectiveCamera(55, w/h, 0.1, 500);
+        camera.position.set(0, H*0.4, D*0.3);
+        camera.lookAt(0, 0, D*0.5);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(w, h);
+        containerRef.current.innerHTML = '';
+        containerRef.current.appendChild(renderer.domElement);
+        const ambient = new THREE.AmbientLight(0xffffff, 0.7);
+        scene.add(ambient);
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        dirLight.position.set(5, 15, 10);
+        scene.add(dirLight);
+        const floor = new THREE.Mesh(
+          new THREE.PlaneGeometry(W*1.2, D*1.2),
+          new THREE.MeshStandardMaterial({ color: hex, roughness: 0.9 })
+        );
+        floor.rotation.x = -Math.PI/2;
+        scene.add(floor);
+        const ceiling = new THREE.Mesh(
+          new THREE.PlaneGeometry(W*1.2, D*1.2),
+          new THREE.MeshStandardMaterial({ color: wallHex, roughness: 0.95 })
+        );
+        ceiling.rotation.x = Math.PI/2;
+        ceiling.position.y = H;
+        scene.add(ceiling);
+        const hw = W/2, hd = D/2;
+        [[W, H, 0.1, 0, H/2, hd], [W, H, 0.1, 0, H/2, -hd], [0.1, H, D, hw, H/2, 0], [0.1, H, D, -hw, H/2, 0]].forEach(([gw,gh,gd,px,py,pz]) => {
+          const wall = new THREE.Mesh(new THREE.BoxGeometry(gw,gh,gd), new THREE.MeshStandardMaterial({ color: wallHex, roughness: 0.95 }));
+          wall.position.set(px, py, pz);
+          scene.add(wall);
+        });
+        let controls = null;
+        try {
+          if (window.THREE.OrbitControls) {
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+          }
+        } catch (e) {}
+        let frame;
+        function animate() {
+          frame = requestAnimationFrame(animate);
+          if (controls) controls.update();
+          renderer.render(scene, camera);
+        }
+        animate();
+        return () => {
+          cancelAnimationFrame(frame);
+          renderer.dispose();
+          if (containerRef.current?.contains(renderer.domElement)) containerRef.current.removeChild(renderer.domElement);
+        };
+      }, [room, containerRef]);
+      return null;
+    }
+
     const MATERIALS = [
       { id: 'hempcrete', name: 'Hempcrete', carbon: -10, texture: 'Grainy' },
       { id: 'mycelium', name: 'Mycelium Insulation', carbon: -15, texture: 'Soft' },
@@ -248,7 +317,16 @@
       const [statusMsg, setStatusMsg] = useState('');
       const [activeTab, setActiveTab] = useState('planner');
       const [viewMode, setViewMode] = useState('2d'); // '2d' | '3d'
+      const [searchQuery, setSearchQuery] = useState('');
+      const [insideViewRoom, setInsideViewRoom] = useState(null);
       const modelViewRef = React.useRef(null);
+      const interiorViewRef = React.useRef(null);
+
+      const filteredRooms = useMemo(() => {
+        if (!searchQuery.trim()) return rooms;
+        const q = searchQuery.toLowerCase().trim();
+        return rooms.filter(r => r.name.toLowerCase().includes(q) || (ROOM_TYPES.find(t => t.id === r.type)?.name || '').toLowerCase().includes(q));
+      }, [rooms, searchQuery]);
 
       useEffect(() => {
         if (!auth) {
@@ -401,10 +479,23 @@
           </aside>
 
           <main className="flex-1 flex flex-col overflow-hidden">
-            <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6">
-              <div className="flex items-center space-x-4">
-                <h2 className="font-semibold text-lg">{activeProject?.name || 'My 2026 Eco-Home'}</h2>
-                {statusMsg && <span className="text-xs text-emerald-600 font-medium animate-pulse bg-emerald-50 px-2 py-1 rounded">{statusMsg}</span>}
+            <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 gap-4">
+              <div className="flex items-center space-x-4 flex-1 min-w-0">
+                <h2 className="font-semibold text-lg shrink-0">{activeProject?.name || 'My 2026 Eco-Home'}</h2>
+                <div className="relative flex-1 max-w-md">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                  <input type="text" placeholder="Search rooms..." value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full pl-10 pr-8 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                  />
+                  {searchQuery && (
+                    <button onClick={() => setSearchQuery('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                      <X size={16} />
+                    </button>
+                  )}
+                </div>
+                {searchQuery && <span className="text-xs text-slate-500 shrink-0">{filteredRooms.length} of {rooms.length} rooms</span>}
+                {statusMsg && <span className="text-xs text-emerald-600 font-medium animate-pulse bg-emerald-50 px-2 py-1 rounded shrink-0">{statusMsg}</span>}
               </div>
               <div className="flex items-center space-x-3">
                 <div className="flex items-center bg-slate-100 p-1 rounded-lg overflow-x-auto max-w-[480px] gap-0.5 flex-wrap">
@@ -447,13 +538,13 @@
                 {viewMode === '2d' && (
                 <div className="relative bg-white shadow-xl mx-auto rounded-sm border border-slate-300"
                   style={{ width: '800px', height: '600px', backgroundImage: 'radial-gradient(#e5e7eb 1px, transparent 1px)', backgroundSize: '20px 20px' }}>
-                  {rooms.map(room => {
+                  {(searchQuery ? filteredRooms : rooms).map(room => {
                     const colorOpt = ROOM_COLORS.find(c => c.id === (room.roomColor || ROOM_TYPES.find(t => t.id === room.type)?.colorId));
                     const bgClass = colorOpt?.bg || ROOM_TYPES.find(t => t.id === room.type)?.color || 'bg-gray-100';
                     const curtainOpt = CURTAIN_COLORS.find(c => c.id === (room.curtainColor || 'white'));
                     const hasCurtains = room.curtains && room.curtains !== 'none';
                     return (
-                    <div key={room.id} onClick={(e) => { e.stopPropagation(); setSelectedRoom(room); }}
+                    <div key={room.id} onClick={(e) => { e.stopPropagation(); setSelectedRoom(room); }} onDoubleClick={(e) => { e.stopPropagation(); setInsideViewRoom(room); }}
                       className={`absolute cursor-move border-2 transition-all ${selectedRoom?.id === room.id ? 'border-indigo-500 ring-2 ring-indigo-200 z-20 shadow-lg' : 'border-slate-400 z-10'} ${bgClass} rounded-md p-3 flex flex-col justify-between overflow-hidden`}
                       style={{ left: `${room.x}px`, top: `${room.y}px`, width: `${room.w}px`, height: `${room.h}px` }}
                       onMouseDown={(e) => {
@@ -484,10 +575,10 @@
                       </div>
                     </div>
                   ); })}
-                  {rooms.length === 0 && (
+                  {(searchQuery ? filteredRooms : rooms).length === 0 && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 italic">
                       <Layout size={48} className="mb-4 opacity-20" />
-                      <p>Click room types in the toolbar to add them, then drag to arrange</p>
+                      <p>{searchQuery ? `No rooms match "${searchQuery}"` : 'Click room types in the toolbar to add them, then drag to arrange'}</p>
                     </div>
                   )}
                 </div>
@@ -503,7 +594,7 @@
                   ) : (
                     <div ref={modelViewRef} className="w-full h-full" style={{ minHeight: '550px' }} />
                   )}
-                  <HouseModel3D rooms={rooms} containerRef={modelViewRef} />
+                  <HouseModel3D rooms={searchQuery ? filteredRooms : rooms} containerRef={modelViewRef} />
                 </div>
                 )}
                 </>
@@ -662,6 +753,11 @@
                       </div>
                     </div>
                   </div>
+                  <button onClick={() => setInsideViewRoom(selectedRoom)}
+                    className="w-full flex items-center justify-center space-x-2 bg-indigo-600 text-white py-2.5 rounded-lg hover:bg-indigo-700 transition font-medium">
+                    <Maximize2 size={18} />
+                    <span>View Inside Room</span>
+                  </button>
                   <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
                     <div className="flex items-center space-x-2 text-indigo-600 mb-2">
                       <Info size={16} />
@@ -680,6 +776,21 @@
               </div>
             )}
           </aside>
+
+          {insideViewRoom && (
+            <div className="fixed inset-0 z-50 bg-slate-900/90 flex flex-col">
+              <div className="flex items-center justify-between p-4 bg-white/95 backdrop-blur border-b">
+                <h3 className="text-lg font-bold text-slate-800">Inside: {insideViewRoom.name}</h3>
+                <button onClick={() => setInsideViewRoom(null)} className="p-2 rounded-lg hover:bg-slate-100 text-slate-600">
+                  <X size={24} />
+                </button>
+              </div>
+              <div className="flex-1 p-4 min-h-0">
+                <div ref={interiorViewRef} className="w-full h-full rounded-xl overflow-hidden bg-slate-800" style={{ height: 'calc(100vh - 140px)', minHeight: '400px' }} />
+                <RoomInteriorView room={insideViewRoom} containerRef={interiorViewRef} onClose={() => setInsideViewRoom(null)} />
+              </div>
+            </div>
+          )}
         </div>
       );
     }
